@@ -1,0 +1,4 @@
+*.log
+.vscode
+__pycache__
+__init__.py
