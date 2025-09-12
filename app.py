@@ -2,8 +2,8 @@ import streamlit as st
 import geemap.foliumap as geemap
 import ee
 import json, os
-
-import ee, os, json
+# Force geemap to use /tmp for HTML outputs
+geemap.temp_dir = "/tmp"
 
 # Initialize Earth Engine with service account if running on HF
 key_json = os.environ.get("GEE_SERVICE_KEY")
