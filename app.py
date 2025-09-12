@@ -15,12 +15,13 @@ if key_json:
     credentials = ee.ServiceAccountCredentials(service_account, key_data=key_json)
     ee.Initialize(credentials)
 else:
-    # Local dev fallback (needs manual ee.Authenticate())
-    ee.Initialize()
-
-
-# Initialize Earth Engine
-ee.Initialize()
+    # Local dev fallback (requires manual ee.Authenticate())
+    try:
+        ee.Initialize()
+        st.write("✅ Initialized Earth Engine (local dev)")
+    except Exception as e:
+        st.error(f"Local Earth Engine init failed: {e}")
+        st.stop()
 
 # Title
 st.title("🌍 Hansen Global Forest Change Dashboard")
