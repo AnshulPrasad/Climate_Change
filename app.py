@@ -3,15 +3,20 @@ import geemap.foliumap as geemap
 import ee
 import json, os
 
-# Load GEE credentials from HF secret
-service_account = "acharya-prashant@acharyaprashant07031978.iam.gserviceaccount.com"
+import ee, os, json
+
+# Initialize Earth Engine with service account if running on HF
 key_json = os.environ.get("GEE_SERVICE_KEY")
 
 if key_json:
-    creds = ee.ServiceAccountCredentials(service_account, key_data=key_json)
-    ee.Initialize(creds)
+    # Parse the JSON key from secret
+    key_data = json.loads(key_json)
+    service_account = key_data["client_email"]
+    credentials = ee.ServiceAccountCredentials(service_account, key_data=key_json)
+    ee.Initialize(credentials)
 else:
-    ee.Initialize()  # fallback (for local dev)
+    # Local dev fallback (needs manual ee.Authenticate())
+    ee.Initialize()
 
 
 # Initialize Earth Engine
