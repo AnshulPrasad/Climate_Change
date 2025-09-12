@@ -65,4 +65,4 @@ if show_gain:
                "Forest Gain")
 
 # Display map in Streamlit
-m.to_streamlit(height=600)
+m.to_streamlit(height=600, filepath="/tmp/map.html")
