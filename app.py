@@ -1,6 +1,18 @@
 import streamlit as st
 import geemap.foliumap as geemap
 import ee
+import json, os
+
+# Load GEE credentials from HF secret
+service_account = "acharya-prashant@acharyaprashant07031978.iam.gserviceaccount.com"
+key_json = os.environ.get("GEE_SERVICE_KEY")
+
+if key_json:
+    creds = ee.ServiceAccountCredentials(service_account, key_data=key_json)
+    ee.Initialize(creds)
+else:
+    ee.Initialize()  # fallback (for local dev)
+
 
 # Initialize Earth Engine
 ee.Initialize()
