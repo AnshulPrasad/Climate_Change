@@ -19,7 +19,7 @@ WORKDIR /app
 # Copy files
 COPY requirements.txt .
 COPY app.py .
-COPY config.py .
+COPY src/config.py .
 COPY README.md .
 
 # Install Python dependencies
