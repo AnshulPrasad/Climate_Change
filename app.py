@@ -1,7 +1,8 @@
 import streamlit as st
 import geemap.foliumap as geemap
-import ee
-import json, os
+import ee, json, os, tempfile
+from src.config import dataset_name
+
 # Force geemap to use /tmp for HTML outputs
 geemap.temp_dir = "/tmp"
 
@@ -9,11 +10,15 @@ geemap.temp_dir = "/tmp"
 key_json = os.environ.get("GEE_SERVICE_KEY")
 
 if key_json:
-    # Parse the JSON key from secret
-    key_data = json.loads(key_json)
-    service_account = key_data["client_email"]
-    credentials = ee.ServiceAccountCredentials(service_account, key_data=key_json)
-    ee.Initialize(credentials)
+    try:
+        key_data = json.loads(key_json)
+        service_account = key_data["client_email"]
+        credentials = ee.ServiceAccountCredentials(service_account, key_data=key_json)
+        ee.Initialize(credentials, project=key_data.get("project_id"))
+        st.write("✅ Initialized Earth Engine with service account")
+    except Exception as e:
+        st.error(f"Service account init failed: {e}")
+        st.stop()
 else:
     # Local dev fallback (requires manual ee.Authenticate())
     try:
@@ -35,7 +40,7 @@ show_loss = st.sidebar.checkbox("Show Forest Loss", True)
 show_gain = st.sidebar.checkbox("Show Forest Gain", False)
 
 # Hansen dataset
-dataset = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
+dataset = ee.Image(dataset_name)
 
 treecover2000 = dataset.select('treecover2000')
 loss = dataset.select('loss')
@@ -64,5 +69,10 @@ if show_gain:
                {'palette': ['blue']},
                "Forest Gain")
 
-# Display map in Streamlit
-m.to_streamlit(height=600, filepath="/tmp/map.html")
+# Create a temp file in /tmp (guaranteed writable on most hosts)
+tmp = tempfile.NamedTemporaryFile(dir="/tmp", suffix=".html", delete=False)
+tmp_path = tmp.name
+tmp.close()
+
+# write the HTML into the tmp file via geemap (this forces writing to /tmp)
+m.to_streamlit(height=600, filepath=tmp_path)
