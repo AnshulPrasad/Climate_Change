@@ -1,10 +1,25 @@
 import streamlit as st
 import geemap.foliumap as geemap
-import ee
+import ee, os, json
 from config import project_name, dataset_name
 
-# Initialize Earth Engine
-ee.Initialize(project= project_name)
+# Load service account key from HF secrets
+key_json = os.environ.get("GEE_SERVICE_KEY")
+
+if key_json:
+    try:
+        key_data = json.loads(key_json)
+        service_account = key_data["client_email"]
+        credentials = ee.ServiceAccountCredentials(service_account, key_data=key_json)
+        ee.Initialize(credentials, project=project_name)
+        st.write("✅ Earth Engine initialized with service account")
+    except Exception as e:
+        st.error(f"Failed to init Earth Engine: {e}")
+        st.stop()
+else:
+    st.error("❌ No Earth Engine service key found. Please add GEE_SERVICE_KEY in HF secrets.")
+    st.stop()
+
 
 # Title
 st.title("🌍 Hansen Global Forest Change Dashboard")
