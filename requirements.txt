@@ -1,26 +1,11 @@
-# Requirements for Forest Loss Analysis notebook
-# Use a conda-forge environment if possible; install pyarrow/streamlit via pip if needed.
-
-# Core analysis
-earthengine-api>=0.1.300
-geemap>=0.36
-numpy>=1.23
-pandas>=2.0
-matplotlib>=3.5
-ipywidgets>=8.0
+earthengine-api==1.6.6
+geemap==0.36.2
+numpy==1.23
+pandas==2.2.3
+matplotlib==3.10.6
 tqdm
-
-# Mapping / visualization
-folium>=0.14
+folium==0.20
 branca
 ipyleaflet
-
-# Optional (install via pip if you face conda solver issues)
-# pyarrow wheels can pull CUDA builds via conda; prefer pip for pyarrow when needed:
-# pip install pyarrow==10.0.1
-# streamlit (optional app), install via pip:
-# pip install streamlit
-
-# Dev / notebook
-jupyterlab
-jupyterlab_widgets
+streamlit==1.49.1
+protobuf==3.20.3
