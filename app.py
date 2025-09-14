@@ -1,9 +1,10 @@
 import streamlit as st
 import geemap.foliumap as geemap
 import ee
+from config import project_name, dataset_name
 
 # Initialize Earth Engine
-ee.Initialize()
+ee.Initialize(project= project_name)
 
 # Title
 st.title("🌍 Hansen Global Forest Change Dashboard")
@@ -17,7 +18,7 @@ show_loss = st.sidebar.checkbox("Show Forest Loss", True)
 show_gain = st.sidebar.checkbox("Show Forest Gain", False)
 
 # Hansen dataset
-dataset = ee.Image("UMD/hansen/global_forest_change_2022_v1_10")
+dataset = ee.Image(dataset_name)
 
 treecover2000 = dataset.select('treecover2000')
 loss = dataset.select('loss')
