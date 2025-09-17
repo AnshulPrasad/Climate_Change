@@ -1,6 +1,6 @@
 import streamlit as st
 import geemap.foliumap as geemap
-import ee, os, json
+import ee, os, json, tempfile
 from config import dataset_name, project_name
 
 # Force Streamlit to use /tmp instead of /
@@ -8,6 +8,8 @@ os.environ["STREAMLIT_HOME"] = "/tmp"
 os.environ["XDG_CONFIG_HOME"] = "/tmp"
 os.environ["XDG_CACHE_HOME"] = "/tmp"
 
+# Patch geemap/folium to use /tmp instead of /app
+tempfile.gettempdir = lambda: "/tmp"
 
 # Load service account key from HF secrets
 key_json = os.environ.get("GEE_SERVICE_KEY")
