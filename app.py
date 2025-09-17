@@ -7,6 +7,7 @@ from config import dataset_name, project_name
 os.environ["STREAMLIT_HOME"] = "/tmp"
 os.environ["XDG_CONFIG_HOME"] = "/tmp"
 os.environ["XDG_CACHE_HOME"] = "/tmp"
+os.environ["STREAMLIT_CONFIG_DIR"] = "/tmp/.streamlit"
 
 # Patch geemap/folium to use /tmp instead of /app
 tempfile.gettempdir = lambda: "/tmp"
