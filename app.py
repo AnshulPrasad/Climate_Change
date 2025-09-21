@@ -1,9 +1,10 @@
 import os, sys
-from src.utils import manage_writable_locations
 
 # Make sure /app is in sys.path
 sys.path.append(os.path.dirname(__file__))
 
+# Import only manage_writable_locations first
+from src.utils import manage_writable_locations
 manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it initializes anything
 
 from src.utils import (
