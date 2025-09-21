@@ -14,7 +14,10 @@ from src.utils import (
     get_forest_stats,
     init_logging,
     init_gee,
+    extract_drawn_geojson,
 )
+from streamlit_folium import st_folium
+from folium.plugins import Draw
 
 
 init_logging()
@@ -45,7 +48,6 @@ m = geemap.Map(center=[22.0, 79.0], zoom=4)
 
 # Let users draw ROI
 st.sidebar.subheader("Draw ROI on Map")
-roi = m.draw_features  # interactive drawing
 
 # Hansen dataset
 dataset = ee.Image(dataset_name)
@@ -77,19 +79,52 @@ if show_gain:
         "Forest Gain",
     )
 
-# --- Save map into /tmp (writable) and render with Streamlit ---
-map_path = "/tmp/map.html"
-m.save(map_path)  # forces save into a writable directory
-html = Path(map_path).read_text()
-st.components.v1.html(html, height=600, scrolling=True)
+# Add a Draw control so users can draw polygons/polylines/markers
+Draw(
+    export=True,
+    draw_options={
+        "polyline": False,  # disable because we don't want polylines
+        "circle": False,
+        "circlemarker": False,
+    },
+).add_to(m)
 
+# Display map with streamlit-folium and capture interations (returns as dict)
+map_return = st_folium(m, height=600, width=900)
+drawn_geojson = extract_drawn_geojson(map_return)
 
-# If user has drawn ROI, compute stats
-# else compute Global Forest Statics
-if roi and len(roi.get("features", [])) > 0:
-    roi_geom = ee.Geometry.Polygon(roi["features"][0]["geometry"]["coordinates"])
-else:
+# Convert drawn geojson to an ee.Geometry (if present)
+roi_geom = None
+if drawn_geojson:
+    try:
+        # If returned as FeatureCollection-like dict, use as-is
+        # Ensure we pass a proper GeoJSON geometry or feature to ee.Geometry
+        # The code below handles multiple shapes; we take the first feature polygon
+        if isinstance(drawn_geojson, dict):
+            # Many returns contain feature collection {"type":"FeatureCollection", "features":[...]}
+            if drawn_geojson.get("type") == "FeatureCollection":
+                feat = drawn_geojson["features"][0]
+                geom_json = feat.get("geometry") if "geometry" in feat else feat
+            elif "geometry" in drawn_geojson:
+                geom_json = drawn_geojson["geometry"]
+            else:
+                geom_json = drawn_geojson  # fallback
+
+            # create ee.Geometry directly from the GeoJSON geometry
+            roi_geom = ee.Geometry(geom_json)
+
+        else:
+            # If it's a list/other, attempt to create polygon with coordinates
+            roi_geom = ee.Geometry(drawn_geojson)
+
+    except Exception as e:
+        # If parsing fails, keep roi_geom None and show error in UI
+        st.error(f"Failed to parse drawn ROI: {e}")
+        roi_geom = None
+
+if not roi_geom:
     roi_geom = ee.Geometry.BBox(-180, -90, 180, 90)
+
 
 stats = get_forest_stats(roi_geom, start_year, end_year, dataset)
 

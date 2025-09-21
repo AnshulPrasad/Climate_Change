@@ -93,3 +93,17 @@ def get_forest_stats(roi, start_year=2001, end_year=2024, dataset=dataset_name):
         "gain_area": gain_area.getInfo(),
         "yearly_loss": yearly_loss.getInfo(),
     }
+
+def extract_drawn_geojson(map_return_dict):
+    """Try common keys to extract a GeoJSON FeatureCollection from st_folium return value."""
+    if not map_return_dict:
+        return None
+    
+    # common keys used by various versions of streamlit-folium
+    for key in ("all_drawings", "all_drawing_geojson", "draw_features", "last_active_drawing", "last_drawn", "geojson"):
+        feat = map_return_dict.get(key)
+        if feat:
+            return feat
+        
+        # some versions return 'last_drawn' as nested dict under 'last_drawn'
+        return map_return_dict.get("last_drawn") or map_return_dict("features")
