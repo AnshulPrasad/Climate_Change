@@ -1,21 +1,21 @@
 # Import only manage_writable_locations first
-from src.utils import manage_writable_locations
+from src.setup_env import manage_writable_locations
 
 manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it initializes anything
-
-from src.utils import (
-    get_forest_stats,
-    init_logging,
-    init_gee,
-)
 
 # imports
 import logging, ee
 import streamlit as st
 import geemap.foliumap as geemap
 from pathlib import Path
-from config import dataset_name, project_name
+from config import dataset_name
 from src.visualization import plot_forest_loss
+from src.utils import (
+    get_forest_stats,
+    init_logging,
+    init_gee,
+)
+
 
 init_logging()
 init_gee()
@@ -104,7 +104,7 @@ st.write(f"🌱 Total gain (2001–2024): {stats['gain_area']['gain']/10000:,.2f
 
 
 # Assume loss_dict is already computed somewhere in your app
-st.header("Forest Loss Analysis")
+st.header("Yearly Forest Area Loss")
 
 loss_dict = stats["yearly_loss"]
 fig = plot_forest_loss(loss_dict)
