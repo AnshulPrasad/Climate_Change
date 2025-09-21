@@ -13,14 +13,14 @@ RUN apt-get update && apt-get install -y \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Set workdir
-WORKDIR /app
+# Create non-root user
+RUN useradd -m -u 1000 appuser
+USER appuser
+ENV HOME=/home/appuser
+WORKDIR /home/appuser/app
 
-# Copy files
-COPY requirements.txt .
-COPY app.py .
-COPY config.py .
-COPY README.md .
+# Copy all files into container
+COPY --chown=appuser:appuser . .
 
 # Install Python dependencies
 RUN pip install --no-cache-dir -r requirements.txt
