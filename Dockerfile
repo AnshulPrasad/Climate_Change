@@ -5,27 +5,26 @@ FROM python:3.10-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 
-# Install system dependencies + pip
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
-    python3-pip \
     git \
     curl \
     unzip \
     build-essential \
     && rm -rf /var/lib/apt/lists/*
 
-# Create non-root user
-RUN useradd -m -u 1000 appuser
-USER appuser
-ENV HOME=/home/appuser
-WORKDIR /home/appuser/app
+# Set workdir
+WORKDIR /app
 
-# Copy all files
-COPY --chown=appuser:appuser . .
+# Copy files
+COPY requirements.txt .
+COPY app.py .
+COPY config.py .
+COPY src/* ./src/
+COPY README.md .
 
 # Install Python dependencies
-RUN python3 -m pip install --upgrade pip
-RUN python3 -m pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir -r requirements.txt
 
 # Expose port for Streamlit
 EXPOSE 7860
