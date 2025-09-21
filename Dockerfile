@@ -15,6 +15,7 @@ RUN apt-get update && apt-get install -y \
 
 # Set workdir
 WORKDIR /app
+ENV HOME=/app
 
 # Copy files
 COPY requirements.txt .
