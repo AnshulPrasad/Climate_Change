@@ -4,15 +4,6 @@ from pathlib import Path
 from config import dataset_name, project_name
 
 
-def manage_writable_locations():
-    """Force writable locations BEFORE importing any libs that write files"""
-
-    os.environ["HOME"] = "/tmp"  # important: expanduser() uses HOME
-    os.environ["XDG_CONFIG_HOME"] = "/tmp/.config"
-    os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
-    os.environ["STREAMLIT_CONFIG_DIR"] = "/tmp/.streamlit"
-
-
 def init_logging():
     # Reconfigure logging to output both to notebook and to a file
     logging.basicConfig(
