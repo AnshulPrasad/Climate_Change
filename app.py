@@ -6,7 +6,6 @@ manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it 
 # imports
 import logging, ee
 import streamlit as st
-st.set_option("browser.gatherUsageStats", False)
 import geemap.foliumap as geemap
 from pathlib import Path
 from config import dataset_name
