@@ -1,84 +1,109 @@
-import os
+from src.utils import (
+    get_forest_stats,
+    manage_writable_locations,
+    init_logging,
+    init_gee,
+)
 
-# Force writable locations BEFORE importing any libs that write files
-os.environ["HOME"] = "/tmp"                    # important: expanduser() uses HOME
-os.environ["XDG_CONFIG_HOME"] = "/tmp/.config"
-os.environ["XDG_CACHE_HOME"] = "/tmp/.cache"
-os.environ["STREAMLIT_CONFIG_DIR"] = "/tmp/.streamlit"
+manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it initializes anything
 
-# Now imports (safe)
+# imports
+import json, sys, logging, ee, os
 import streamlit as st
 import geemap.foliumap as geemap
-import ee
-import os, json
 from pathlib import Path
+from config import dataset_name, project_name
+from src.visualization import plot_forest_loss
 
-dataset_name, project_name = "UMD/hansen/global_forest_change_2024_v1_12", 'climate-change-472103'
-
-# ------ Earth Engine service account handling ------
-# If user sets GEE_SERVICE_KEY in HF secrets as JSON string, write it to a temporary file
-key_json = os.environ.get("GEE_SERVICE_KEY")
-if key_json:
-    try:
-        key_data = json.loads(key_json)
-        sa_email = key_data.get("client_email")
-        tmp_key_path = "/tmp/gee_service_account.json"
-        # write JSON to file (overwrite if exists)
-        Path(tmp_key_path).write_text(json.dumps(key_data))
-        credentials = ee.ServiceAccountCredentials(sa_email, tmp_key_path)
-        ee.Initialize(credentials, project=key_data.get("project_id"))
-        st.write("✅ Earth Engine initialized with service account")
-    except Exception as e:
-        st.error(f"Failed to init Earth Engine: {e}")
-        st.stop()
-else:
-    st.error("❌ No Earth Engine service key found. Please add GEE_SERVICE_KEY in HF secrets.")
-    # fallback - try to initialize with project (will error if not authenticated)
-    ee.Authenticate()
-    ee.Initialize(project=project_name)
+init_logging()
+init_gee()
 
 
 # Title
-st.title("🌍 Hansen Global Forest Change Dashboard")
+st.title("🌍 Global Forest Change Dashboard")
 
 # Sidebar controls
 st.sidebar.header("Controls")
-year = st.sidebar.slider("Select Year of Loss", 2001, 2022, 2015)
+st.sidebar.subheader("Select Year Range")
+year_range = st.sidebar.slider(
+    "Choose Year Range",
+    min_value=2001,
+    max_value=2024,
+    value=(2010, 2015),
+)
+start_year, end_year = year_range
+logging.info(f"Showing data from {start_year} to {end_year}")
 show_treecover = st.sidebar.checkbox("Show Tree Cover 2000", True)
 show_loss = st.sidebar.checkbox("Show Forest Loss", True)
 show_gain = st.sidebar.checkbox("Show Forest Gain", False)
 
-# Hansen dataset
-dataset = ee.Image(dataset_name)
-treecover2000 = dataset.select('treecover2000')
-loss = dataset.select('loss')
-gain = dataset.select('gain')
-lossyear = dataset.select('lossyear')
-
-# Mask to selected year
-loss_selected = lossyear.eq(year - 2000)
 
 # Create map
-m = geemap.Map(center=[20, 0], zoom=3)
+m = geemap.Map(center=[22.0, 79.0], zoom=4)
+
+# Let users draw ROI
+st.sidebar.subheader("Draw ROI on Map")
+roi = m.draw_features  # interactive drawing
+
+# Hansen dataset
+dataset = ee.Image(dataset_name)
+treecover2000 = dataset.select("treecover2000")
+loss = dataset.select("loss")
+gain = dataset.select("gain")
+lossyear = dataset.select("lossyear")
 
 # Add layers based on toggle
 if show_treecover:
-    m.addLayer(treecover2000.updateMask(treecover2000),
-               {'min': 0, 'max': 100, 'palette': ['white', 'green']},
-               "Tree cover 2000")
+    m.addLayer(
+        treecover2000.updateMask(treecover2000),
+        {"min": 0, "max": 100, "palette": ["white", "green"]},
+        "Tree cover 2000",
+    )
 
 if show_loss:
-    m.addLayer(loss_selected.updateMask(loss_selected),
-               {'palette': ['red']},
-               f"Forest Loss {year}")
+    mask = lossyear.gte(start_year - 2000).And(lossyear.lte(end_year - 2000))
+    m.addLayer(
+        loss.updateMask(mask),
+        {"palette": ["red"]},
+        f"Forest Loss {start_year}-{end_year}",
+    )
 
 if show_gain:
-    m.addLayer(gain.updateMask(gain),
-               {'palette': ['blue']},
-               "Forest Gain")
+    m.addLayer(
+        gain.updateMask(gain),
+        {"palette": ["blue"]},
+        "Forest Gain",
+    )
 
 # --- Save map into /tmp (writable) and render with Streamlit ---
 map_path = "/tmp/map.html"
-m.save(map_path)           # forces save into a writable directory
+m.save(map_path)  # forces save into a writable directory
 html = Path(map_path).read_text()
 st.components.v1.html(html, height=600, scrolling=True)
+
+
+# If user has drawn ROI, compute stats
+# else compute Global Forest Statics
+if roi and len(roi.get("features", [])) > 0:
+    roi_geom = ee.Geometry.Polygon(roi["features"][0]["geometry"]["coordinates"])
+else:
+    roi_geom = ee.Geometry.BBox(-180, -90, 180, 90)
+
+stats = get_forest_stats(roi_geom, start_year, end_year, dataset)
+
+st.subheader("📊 Region Of Interest (ROI) Forest Statistics")
+st.write(
+    f"🌲 Forest area (2000): {stats['forest_area_2000']['treecover2000']/10000:,.2f} ha"
+)
+st.write(
+    f"🔥 Total loss ({start_year}–{end_year}): {stats['loss_area']['loss']/10000:,.2f} ha"
+)
+st.write(f"🌱 Total gain (2001–2024): {stats['gain_area']['gain']/10000:,.2f} ha")
+
+
+# Assume loss_dict is already computed somewhere in your app
+st.header("Forest Loss Analysis")
+
+loss_dict = stats["yearly_loss"]
+fig = plot_forest_loss(loss_dict)
+st.pyplot(fig)  # Streamlit renders the matplotlib figure
