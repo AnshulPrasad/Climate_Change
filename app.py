@@ -1,14 +1,19 @@
+import os, sys
+from src.utils import manage_writable_locations
+
+# Make sure /app is in sys.path
+sys.path.append(os.path.dirname(__file__))
+
+manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it initializes anything
+
 from src.utils import (
     get_forest_stats,
-    manage_writable_locations,
     init_logging,
     init_gee,
 )
 
-manage_writable_locations()  # Force Streamlit to use /tmp/.streamlit before it initializes anything
-
 # imports
-import json, sys, logging, ee, os
+import json, logging, ee
 import streamlit as st
 import geemap.foliumap as geemap
 from pathlib import Path
