@@ -15,6 +15,7 @@ from src.utils import (
     init_logging,
     init_gee,
     extract_drawn_geojson,
+    rmv_existing_draw_controls,
 )
 from streamlit_folium import st_folium
 from folium.plugins import Draw
@@ -29,6 +30,10 @@ loss = dataset.select("loss")
 gain = dataset.select("gain")
 lossyear = dataset.select("lossyear")
 
+
+# -----------------------------------------------------
+# App Sidebar
+# -----------------------------------------------------
 
 # Title
 st.title("🌍 Global Forest Change Dashboard")
@@ -48,11 +53,13 @@ show_treecover = st.sidebar.checkbox("Show Tree Cover 2000", True)
 show_loss = st.sidebar.checkbox("Show Forest Loss", True)
 show_gain = st.sidebar.checkbox("Show Forest Gain", False)
 
+
+# -------------------------------------------------------
+# Map
+# -------------------------------------------------------
+
 # Create map
 m = geemap.Map(center=[22.0, 79.0], zoom=4)
-
-# Let users draw ROI
-st.sidebar.subheader("Draw ROI on Map")
 
 # Add layers based on toggle
 if show_treecover:
@@ -77,6 +84,8 @@ if show_gain:
         "Forest Gain",
     )
 
+rmv_existing_draw_controls(m)
+
 # Add a Draw control so users can draw polygons/polylines/markers
 Draw(
     export=True,
@@ -84,6 +93,10 @@ Draw(
         "polyline": False,  # disable because we don't want polylines
         "circle": False,
         "circlemarker": False,
+    },
+    edit_options={
+        "edit": False,
+        "remove": False,
     },
 ).add_to(m)
 
@@ -113,33 +126,37 @@ drawn_geojson = extract_drawn_geojson(map_return)
 roi_geom = None
 if drawn_geojson:
     try:
-        # If output is a list of Feature dicts (common in 'all_drawings'):
-        if isinstance(drawn_geojson, list) and len(drawn_geojson) > 0:
-            # Use the first drawn feature
-            feature = drawn_geojson[0]
-            # if it has a 'geometry' field, use that dict directly
-            geom_json = feature.get("geometry", feature)
-            roi_geom = ee.Geometry(geom_json)
+        geometries = []
 
-        # If returned as FeatureCollection-like dict, use as-is
-        # Ensure we pass a proper GeoJSON geometry or feature to ee.Geometry
-        # The code below handles multiple shapes; we take the first feature polygon
+        # case 1: list of fetures (from "all_drawings")
+        if isinstance(drawn_geojson, list):
+            # Combine all shapes into one GeometryCollection
+            for f in drawn_geojson:
+                # if it has a 'geometry' field, use that dict directly
+                if "geometry" in f:
+                    geometries.append(ee.Geometry(f["geometry"]))
+
+        # case 2: dict (single feature or FeatureCollection)
         elif isinstance(drawn_geojson, dict):
-            # Many returns contain feature collection {"type":"FeatureCollection", "features":[...]}
             if drawn_geojson.get("type") == "FeatureCollection":
-                feat = drawn_geojson["features"][0]
-                geom_json = feat.get("geometry") if "geometry" in feat else feat
+                for f in drawn_geojson["features"]:
+                    if "geometry" in f:
+                        geometries.append(ee.Geometry(f["geometry"]))
             elif "geometry" in drawn_geojson:
-                geom_json = drawn_geojson["geometry"]
+                geometries.append(ee.Geometry(drawn_geojson["geometry"]))
             else:
-                geom_json = drawn_geojson  # fallback
+                geometries.append(ee.Geometry(drawn_geojson))  # fallback
 
-            # create ee.Geometry directly from the GeoJSON geometry
-            roi_geom = ee.Geometry(geom_json)
-
-        else:
-            roi_geom = None
-
+        # combine all shapes into one union geometries
+        if geometries:
+            if len(geometries) == 1:
+                roi_geom = geometries[0]
+            else:
+                roi_geom = (
+                    ee.FeatureCollection([ee.Feature(g) for g in geometries])
+                    .union()
+                    .geometry()
+                )
     except Exception as e:
         # If parsing fails, keep roi_geom None and show error in UI
         st.error(f"Failed to parse drawn ROI: {e}")
@@ -151,6 +168,11 @@ if not roi_geom:
 
 stats = get_forest_stats(roi_geom, start_year, end_year, dataset)
 
+
+# --------------------------------------------------
+# Region Of Interest (ROI) Forest Statistics
+# --------------------------------------------------
+
 st.subheader("📊 Region Of Interest (ROI) Forest Statistics")
 st.write(
     f"🌲 Forest area (2000): {stats['forest_area_2000']['treecover2000']/10000:,.2f} ha"
@@ -160,6 +182,10 @@ st.write(
 )
 st.write(f"🌱 Total gain (2001–2024): {stats['gain_area']['gain']/10000:,.2f} ha")
 
+
+# -----------------------------------------
+# Yearly Forest Area Loss chart
+# ------------------------------------------
 
 # Assume loss_dict is already computed somewhere in your app
 st.header("Yearly Forest Area Loss")
