@@ -19,9 +19,15 @@ from src.utils import (
 from streamlit_folium import st_folium
 from folium.plugins import Draw
 
-
 init_logging()
 init_gee()
+
+# Hansen dataset
+dataset = ee.Image(dataset_name)
+treecover2000 = dataset.select("treecover2000")
+loss = dataset.select("loss")
+gain = dataset.select("gain")
+lossyear = dataset.select("lossyear")
 
 
 # Title
@@ -42,19 +48,11 @@ show_treecover = st.sidebar.checkbox("Show Tree Cover 2000", True)
 show_loss = st.sidebar.checkbox("Show Forest Loss", True)
 show_gain = st.sidebar.checkbox("Show Forest Gain", False)
 
-
 # Create map
 m = geemap.Map(center=[22.0, 79.0], zoom=4)
 
 # Let users draw ROI
 st.sidebar.subheader("Draw ROI on Map")
-
-# Hansen dataset
-dataset = ee.Image(dataset_name)
-treecover2000 = dataset.select("treecover2000")
-loss = dataset.select("loss")
-gain = dataset.select("gain")
-lossyear = dataset.select("lossyear")
 
 # Add layers based on toggle
 if show_treecover:
@@ -89,18 +87,44 @@ Draw(
     },
 ).add_to(m)
 
-# Display map with streamlit-folium and capture interations (returns as dict)
-map_return = st_folium(m, height=600, width=900)
+# ensure session state key for forcing map refresh (clearing drawings removed)
+if "map_key" not in st.session_state:
+    st.session_state["map_key"] = 0
+
+# small UI for clearing existing drawings on the client map
+col_clear, _ = st.columns([1, 5])
+with col_clear:
+    if st.button("Clear drawings"):
+        # bump the key so st_folium gets a fresh instance (client-side drawing)
+        st.session_state["map_key"] += 1
+        st.rerun()
+
+# Render the interactive map with a key tied to session_state to allow resets
+map_return = st_folium(
+    m,
+    height=600,
+    width=900,
+    key=f"map-{st.session_state['map_key']}",
+)
+logging.info(f"map_return:\n{map_return}")
 drawn_geojson = extract_drawn_geojson(map_return)
 
 # Convert drawn geojson to an ee.Geometry (if present)
 roi_geom = None
 if drawn_geojson:
     try:
+        # If output is a list of Feature dicts (common in 'all_drawings'):
+        if isinstance(drawn_geojson, list) and len(drawn_geojson) > 0:
+            # Use the first drawn feature
+            feature = drawn_geojson[0]
+            # if it has a 'geometry' field, use that dict directly
+            geom_json = feature.get("geometry", feature)
+            roi_geom = ee.Geometry(geom_json)
+
         # If returned as FeatureCollection-like dict, use as-is
         # Ensure we pass a proper GeoJSON geometry or feature to ee.Geometry
         # The code below handles multiple shapes; we take the first feature polygon
-        if isinstance(drawn_geojson, dict):
+        elif isinstance(drawn_geojson, dict):
             # Many returns contain feature collection {"type":"FeatureCollection", "features":[...]}
             if drawn_geojson.get("type") == "FeatureCollection":
                 feat = drawn_geojson["features"][0]
@@ -114,8 +138,7 @@ if drawn_geojson:
             roi_geom = ee.Geometry(geom_json)
 
         else:
-            # If it's a list/other, attempt to create polygon with coordinates
-            roi_geom = ee.Geometry(drawn_geojson)
+            roi_geom = None
 
     except Exception as e:
         # If parsing fails, keep roi_geom None and show error in UI
