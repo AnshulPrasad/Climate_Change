@@ -106,4 +106,4 @@ def extract_drawn_geojson(map_return_dict):
             return feat
         
         # some versions return 'last_drawn' as nested dict under 'last_drawn'
-        return map_return_dict.get("last_drawn") or map_return_dict("features")
+        return map_return_dict.get("last_drawn") or map_return_dict.get("features")
