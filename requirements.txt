@@ -9,4 +9,4 @@ branca
 ipyleaflet
 streamlit==1.49.1
 protobuf==3.20.3
-streamlit-folium==0.21.0
+streamlit-folium==0.25.1
