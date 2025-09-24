@@ -12,7 +12,7 @@ jobs:
       - name: Ping Space (3 retries)
         run: |
           for i in 1 2 3; do
-            curl -fsS -o /dev/null -L 'https://AnshulPrasad-Climate_Change.hf.space' && exit 0
+            curl -fsS -o /dev/null -L 'https://huggingface.co/spaces/AnshulPrasad/Climate_Change' && exit 0
             sleep 15
           done
           echo "All attempts failed" >&2
