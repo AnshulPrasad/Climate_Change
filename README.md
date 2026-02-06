@@ -7,9 +7,9 @@ sdk: docker
 pinned: false
 ---
 
-# 🌍 Forest Loss Dashboard
+# 🌍 Climate Change
 
-Interactive Streamlit app using Google Earth Engine and Hansen Global Forest Change dataset.
+Interactive Streamlit app for analysing climate change.
 
 ## Run locally
 ```bash
