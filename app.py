@@ -19,6 +19,7 @@ from src.utils import (
 )
 from streamlit_folium import st_folium
 from folium.plugins import Draw
+import streamlit.components.v1 as components
 
 st.set_page_config(page_title="Climate Change Dashboard", layout="wide")
 st.markdown(
@@ -232,6 +233,14 @@ with tab_temp:
                 st.info(f"No PNG graphs found in `{graphs_dir}`.")
         else:
             st.info(f"Missing graphs folder: `{graphs_dir}`.")
+
+        html_files = sorted(Path("output").glob("*.html"))
+        if html_files:
+            st.markdown("#### Interactive HTML")
+            html_names = [p.name for p in html_files]
+            selected_html = st.selectbox("HTML File", html_names, index=0)
+            html_content = Path("output") / selected_html
+            components.html(html_content.read_text(), height=600, scrolling=True)
 
 with tab_emissions:
     left, right = st.columns([1, 3], gap="large")
