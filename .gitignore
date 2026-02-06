@@ -1,9 +1,10 @@
-*.log
+.venv
 .vscode
+dataset
+output
 __pycache__
-__init__.py
 *.zip
-archive
-.gitignore
 *.iml
 *.xml
+.idea
+.streamlit
