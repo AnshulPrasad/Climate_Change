@@ -1,9 +1,8 @@
 .venv
 .vscode
 dataset
-output
+log
 __pycache__
-*.zip
 *.iml
 *.xml
 .idea
