@@ -41,8 +41,11 @@ def init_gee(
             f"❌ No Earth Engine service key found. Please add GEE_SERVICE_KEY in HF secrets."
         )
         # fallback - try to initialize with project (will error if not authenticated)
-        ee.Authenticate()
-        ee.Initialize(project=project_name)
+        try:
+            ee.Initialize(project=project_name)
+        except:
+            ee.Authenticate()
+            ee.Initialize(project=project_name)
 
 
 def get_forest_stats(
