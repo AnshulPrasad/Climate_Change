@@ -8,6 +8,7 @@ import logging, ee
 import streamlit as st
 import geemap.foliumap as geemap
 from pathlib import Path
+from PIL import Image
 from config import dataset_name
 from src.visualization import plot_forest_loss
 from src.utils import (
@@ -72,6 +73,39 @@ st.caption("Explore key climate signals by category.")
 tab_forest, tab_temp, tab_emissions, tab_about = st.tabs(
     ["Forest Loss", "Temperature", "Emissions", "About"]
 )
+
+
+def list_valid_pngs(graphs_dir: Path) -> list[Path]:
+    graph_files = sorted(graphs_dir.glob("*.png"))
+    valid_files = []
+    for path in graph_files:
+        try:
+            with Image.open(path) as img:
+                img.verify()
+            valid_files.append(path)
+        except Exception:
+            continue
+    return valid_files
+
+
+def render_png_picker(graphs_dir: Path, label: str, key: str) -> None:
+    if not graphs_dir.exists():
+        st.info(f"Missing graphs folder: `{graphs_dir}`.")
+        return
+
+    graph_files = list_valid_pngs(graphs_dir)
+    if not graph_files:
+        st.info(f"No valid PNG graphs found in `{graphs_dir}`.")
+        return
+
+    file_map = {p.stem: p for p in graph_files}
+    file_names = sorted(file_map.keys())
+    selected_name = st.selectbox(label, file_names, index=0, key=key)
+    selected_path = file_map[selected_name]
+    try:
+        st.image(str(selected_path), use_container_width=True)
+    except Exception as exc:
+        st.warning(f"Failed to load image `{selected_path.name}`: {exc}")
 
 with tab_forest:
     left, right = st.columns([1, 3], gap="large")
@@ -222,17 +256,7 @@ with tab_temp:
     graphs_dir = Path("output") / scope_to_dir[temp_scope]
     with right:
         st.subheader("Temperature")
-        if graphs_dir.exists():
-            graph_files = sorted(graphs_dir.glob("*.png"))
-            if graph_files:
-                file_names = [p.stem for p in graph_files]
-                selected_name = st.selectbox("Graph", file_names, index=0)
-                selected_path = graphs_dir / f"{selected_name}.png"
-                st.image(str(selected_path), use_container_width=True)
-            else:
-                st.info(f"No PNG graphs found in `{graphs_dir}`.")
-        else:
-            st.info(f"Missing graphs folder: `{graphs_dir}`.")
+        render_png_picker(graphs_dir, "Graph", "temp_graph")
 
         html_files = sorted(Path("output").glob("*.html"))
         if html_files:
@@ -247,11 +271,18 @@ with tab_emissions:
     with left:
         st.markdown('<div class="tab-sidebar">', unsafe_allow_html=True)
         st.markdown("#### Emissions Controls")
-        st.selectbox("Metric", ["CO2", "CH4", "N2O"], index=0)
+        st.selectbox("Metric", ["CO2"], index=0)
         st.markdown("</div>", unsafe_allow_html=True)
     with right:
         st.subheader("Emissions")
-        st.write("Add emissions time series and country comparisons here.")
+        global_graphs_dir = Path("output") / "global_co2_concentration_graph"
+        country_graphs_dir = Path("output") / "countries_co2_emission_graph"
+
+        st.markdown("#### Global CO2 Concentration")
+        render_png_picker(global_graphs_dir, "Global Graph", "global_co2_graph")
+
+        st.markdown("#### Country CO2 Emissions")
+        render_png_picker(country_graphs_dir, "Country Graph", "country_co2_graph")
 
 with tab_about:
     left, right = st.columns([1, 3], gap="large")
