@@ -1,5 +1,5 @@
 ---
-title: Forest Loss Dashboard
+title: Climate Change Dashboard
 emoji: 🌍
 colorFrom: green
 colorTo: blue
