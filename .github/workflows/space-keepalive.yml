@@ -12,7 +12,12 @@ jobs:
       - name: Ping Space (3 retries)
         run: |
           for i in 1 2 3; do
-            curl -fsS -o /dev/null -L 'https://huggingface.co/spaces/AnshulPrasad/Climate_Change' && exit 0
+            STATUS=$(curl -o /dev/null -s -w "%{http_code}" -L 'https://huggingface.co/spaces/AnshulPrasad/climate-change')
+            echo "Attempt $i: HTTP $STATUS"
+            if [ "$STATUS" -eq 200 ]; then
+              echo "Space is awake!"
+              exit 0
+            fi
             sleep 15
           done
           echo "All attempts failed" >&2
