@@ -4,9 +4,7 @@ numpy==1.23
 pandas==2.2.3
 matplotlib==3.10.6
 tqdm
-folium==0.20
-branca
-ipyleaflet
-streamlit==1.49.1
 protobuf==3.20.3
-streamlit-folium==0.25.1
+django>=4.2,<5.0
+Pillow>=10.0
+gunicorn

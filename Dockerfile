@@ -5,7 +5,7 @@ FROM python:3.10-slim
 ENV DEBIAN_FRONTEND=noninteractive \
     PYTHONUNBUFFERED=1
 
-# Install system packages and pip (as root)
+# Install system packages
 RUN apt-get update && apt-get install -y \
     python3-pip \
     build-essential \
@@ -14,20 +14,18 @@ RUN apt-get update && apt-get install -y \
     unzip \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working dir (create later ownership properly)
 WORKDIR /app
 
-# Copy only requirements first so Docker layer caching is efficient
+# Copy only requirements first for efficient layer caching
 COPY requirements.txt /tmp/requirements.txt
 
-# Upgrade pip and install Python deps system-wide (puts streamlit into /usr/local/bin)
+# Upgrade pip and install Python deps
 RUN python3 -m pip install --upgrade pip setuptools wheel \
  && python3 -m pip install --no-cache-dir -r /tmp/requirements.txt \
- # sanity-check: print streamlit path/version if installed (non-fatal)
- && python3 -c "import shutil,sys; p=shutil.which('streamlit'); print('STREAMLIT_BIN=',p); \
-    import streamlit as st; print('STREAMLIT_VER=', getattr(st,'__version__','unknown'))" || true
+ # sanity-check: print django version (non-fatal)
+ && python3 -c "import django; print('DJANGO_VER=', django.__version__)" || true
 
-# Create appuser and make /app writable by that user
+# Create appuser and make /app writable
 RUN useradd -m -u 1000 appuser \
  && mkdir -p /app \
  && chown -R appuser:appuser /app
@@ -40,8 +38,13 @@ USER appuser
 ENV HOME=/home/appuser
 WORKDIR /app
 
-# Expose streamlit default port
-EXPOSE 7860
+# GEE credentials (pass at runtime via docker run -e or docker-compose)
+ENV GEE_SERVICE_ACCOUNT=""
+ENV GEE_KEY_FILE="/app/climate-change-0-2dcbf7ec3d1c.json"
 
-# Start Streamlit (runs as appuser)
-CMD ["streamlit", "run", "app.py", "--server.port=7860", "--server.address=0.0.0.0"]
+# Expose Django default port
+EXPOSE 8000
+
+# Start Django
+WORKDIR /app/django
+CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
