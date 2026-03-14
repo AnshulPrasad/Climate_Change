@@ -43,7 +43,3 @@ MEDIA_URL = '/output/'
 MEDIA_ROOT = BASE_DIR / 'output'
 
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
-
-# Google Earth Engine service account (set via environment or override here)
-GEE_SERVICE_ACCOUNT = os.environ.get('GEE_SERVICE_ACCOUNT', '')
-GEE_KEY_FILE = os.environ.get('GEE_KEY_FILE', '')

@@ -14,21 +14,32 @@ logger = logging.getLogger(__name__)
 
 
 def _init_gee():
-    """Initialize Google Earth Engine. Returns (ee, dataset) or (None, None) on failure."""
+    """Initialize Google Earth Engine using GEE_SERVICE_KEY env var (JSON string)."""
     try:
         import ee
-        try:
-            ee.Initialize()
-        except Exception:
-            if settings.GEE_SERVICE_ACCOUNT and settings.GEE_KEY_FILE:
-                credentials = ee.ServiceAccountCredentials(
-                    settings.GEE_SERVICE_ACCOUNT, settings.GEE_KEY_FILE
-                )
-                ee.Initialize(credentials)
-            else:
-                raise
-        dataset = ee.Image('UMD/hansen/global_forest_change_2023_v1_11')
+        import json
+        from pathlib import Path
+
+        key_json = os.environ.get('GEE_SERVICE_KEY')
+        if key_json:
+            key_data = json.loads(key_json)
+            sa_email = key_data.get('client_email')
+            tmp_key_path = '/tmp/gee_service_account.json'
+            Path(tmp_key_path).write_text(json.dumps(key_data))
+            credentials = ee.ServiceAccountCredentials(sa_email, tmp_key_path)
+            ee.Initialize(credentials, project=key_data.get('project_id'))
+            logger.info('GEE initialized with service account')
+        else:
+            # fallback for local development
+            try:
+                ee.Initialize(project='climate-change-0')
+            except Exception:
+                ee.Authenticate()
+                ee.Initialize(project='climate-change-0')
+
+        dataset = ee.Image('UMD/hansen/global_forest_change_2024_v1_12')
         return ee, dataset
+
     except Exception as exc:
         logger.warning(f"GEE unavailable: {exc}")
         return None, None
