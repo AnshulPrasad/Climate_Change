@@ -47,4 +47,10 @@ EXPOSE 7860
 
 # Start Django
 WORKDIR /app/django
-CMD ["gunicorn", "climate_dashboard.wsgi:application", "--bind", "0.0.0.0:7860", "--workers", "2"]
+CMD ["sh", "-c", "\
+  PYTHONPATH=/app/django/app python manage.py migrate --run-syncdb 2>&1 && \
+  PYTHONPATH=/app/django/app gunicorn climate_dashboard.wsgi:application \
+    --bind 0.0.0.0:7860 \
+    --workers 2 \
+    --timeout 120 \
+"]
