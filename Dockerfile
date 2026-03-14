@@ -43,8 +43,8 @@ ENV GEE_SERVICE_ACCOUNT=""
 ENV GEE_KEY_FILE="/app/climate-change-0-2dcbf7ec3d1c.json"
 
 # Expose Django default port
-EXPOSE 8000
+EXPOSE 7860
 
 # Start Django
 WORKDIR /app/django
-CMD ["python", "manage.py", "runserver", "0.0.0.0:8000"]
+CMD ["gunicorn", "climate_dashboard.wsgi:application", "--bind", "0.0.0.0:7860", "--workers", "2"]
