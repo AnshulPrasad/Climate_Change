@@ -48,7 +48,7 @@ EXPOSE 7860
 # Start Django
 WORKDIR /app
 CMD ["sh", "-c", "\
-  PYTHONPATH=/app/app python manage.py migrate --run-syncdb 2>&1 && \
+  PYTHONPATH=/app/app python manage.py migrate 2>&1 && \
   PYTHONPATH=/app/app gunicorn climate_dashboard.wsgi:application \
     --bind 0.0.0.0:7860 \
     --workers 2 \
