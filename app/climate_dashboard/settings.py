@@ -34,6 +34,13 @@ TEMPLATES = [
     },
 ]
 
+DATABASES = {
+    'default': {
+        'ENGINE': 'django.db.backends.sqlite3',
+        'NAME': '/tmp/db.sqlite3',
+    }
+}
+
 WSGI_APPLICATION = 'climate_dashboard.wsgi.application'
 
 STATIC_URL = '/static/'
