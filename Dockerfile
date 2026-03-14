@@ -46,10 +46,10 @@ ENV GEE_KEY_FILE="/app/climate-change-0-2dcbf7ec3d1c.json"
 EXPOSE 7860
 
 # Start Django
-WORKDIR /app/django
+WORKDIR /app/app
 CMD ["sh", "-c", "\
-  PYTHONPATH=/app/django/app python manage.py migrate --run-syncdb 2>&1 && \
-  PYTHONPATH=/app/django/app gunicorn climate_dashboard.wsgi:application \
+  PYTHONPATH=/app/app/app python manage.py migrate --run-syncdb 2>&1 && \
+  PYTHONPATH=/app/app/app gunicorn climate_dashboard.wsgi:application \
     --bind 0.0.0.0:7860 \
     --workers 2 \
     --timeout 120 \
